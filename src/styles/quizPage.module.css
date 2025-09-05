@@ -113,13 +113,10 @@
   cursor: not-allowed;
 }
 
-/* existing styles... */
-
 .block {
   margin-bottom: 24px;
 }
 
-/* New card to avoid "flat" look */
 .card {
   border: 1px solid #e5e7eb;
   border-radius: 14px;
@@ -175,7 +172,6 @@
   cursor: not-allowed;
 }
 
-/* Feedback */
 .feedback {
   margin-top: 12px;
 }
@@ -189,7 +185,6 @@
   font-weight: 700;
 }
 
-/* Hint box (final screen) */
 .hintBox {
   border: 1px solid #e5e7eb;
   border-radius: 12px;
@@ -198,7 +193,6 @@
   margin: 12px 0;
 }
 
-/* Animations */
 .fadeIn {
   animation: fadeIn .25s ease-out;
 }

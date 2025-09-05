@@ -37,7 +37,6 @@
   margin-bottom: 12px;
 }
 
-/* Map + hint styles (NextHintPage) */
 .mapBox {
   border: 1px solid #e5e7eb;
   border-radius: 12px;
@@ -65,7 +64,6 @@
   margin: 12px 0;
 }
 
-/* Buttons */
 .primary {
   width: 100%;
   padding: 14px 18px;
@@ -88,8 +86,6 @@
 .error {
   color: #ef4444;
 }
-
-/* Card wrapper for consistency */
 .card {
   border: 1px solid #e5e7eb;
   border-radius: 14px;

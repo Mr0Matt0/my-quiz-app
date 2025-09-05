@@ -1,5 +1,3 @@
-// src/services/api.js
-
 const BASE = (import.meta.env.VITE_API_BASE || "https://quiz-tpjgk.ondigitalocean.app").replace(/\/+$/, "");
 
 // ---------- token helpers ----------

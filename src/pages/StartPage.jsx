@@ -18,8 +18,8 @@ export default function StartPage() {
     try {
       setBusy(true);
       localStorage.setItem("playerName", n);
-      await registerUser(n); // will throw if already exists
-      navigate("/quiz/99");  // continue on success
+      await registerUser(n); 
+      navigate("/quiz/99");  
     } catch (ex) {
       setErr(ex.message || "Kunne ikke oprette bruger");
     } finally {
