@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import styles from "../styles/StartPage.module.css";
-import { createUser } from "../services/api"; 
+import styles from "../styles/startPage.module.css";
+import { registerUser } from "../services/api";
 
 export default function StartPage() {
   const [name, setName] = useState("");
@@ -9,62 +9,41 @@ export default function StartPage() {
   const [err, setErr] = useState("");
   const navigate = useNavigate();
 
-  async function handleStart(e){
+  async function handleStart(e) {
     e.preventDefault();
     setErr("");
-    const trimmed = name.trim();
-    if (!trimmed) return;
-
-    // always keep the name locally so the quiz works even if API dies
-    localStorage.setItem("playerName", trimmed);
+    const n = name.trim();
+    if (!n) return;
 
     try {
       setBusy(true);
-      const user = await createUser(trimmed);
-      if (user && user._id) {
-        localStorage.setItem("userId", user._id);
-      } else {
-        // API responded but didn’t return an _id — not your fault, still proceed
-        console.warn("[createUser] No _id in response:", user);
-      }
-    } catch (e) {
-      // don’t block the game just because their API sneezed
-      console.warn("Failed to create user:", e);
-      setErr("Kunne ikke gemme bruger på serveren. Du kan stadig spille.");
+      localStorage.setItem("playerName", n);
+      await registerUser(n); // will throw if already exists
+      navigate("/quiz/99");  // continue on success
+    } catch (ex) {
+      setErr(ex.message || "Kunne ikke oprette bruger");
     } finally {
       setBusy(false);
     }
-
-    navigate("/quiz/1");
   }
 
   return (
     <main className={styles.container}>
       <h1 className={styles.title}>QR Quiz!</h1>
-
       <div className={styles.card}>
         <form onSubmit={handleStart} className={styles.form}>
-          <label htmlFor="playerName" className={styles.label}>
-            Skriv dit navn
-          </label>
+          <label className={styles.label} htmlFor="playerName">Skriv dit navn</label>
           <input
             id="playerName"
-            type="text"
-            placeholder="Indtast dit navn her"
+            className={styles.input}
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className={styles.input}
             disabled={busy}
+            placeholder="Indtast dit navn"
           />
-
-          {err && <p className={styles.error} style={{ marginTop: 8 }}>{err}</p>}
-
-          <button
-            type="submit"
-            className={styles.primary}
-            disabled={!name.trim() || busy}
-          >
-            {busy ? "Opretter…" : "Start quiz"}
+          {err && <p className={styles.error}>{err}</p>}
+          <button className={styles.primary} disabled={!name.trim() || busy}>
+            {busy ? "Starter…" : "Start quiz"}
           </button>
         </form>
       </div>

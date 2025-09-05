@@ -1,13 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import styles from "../styles/quizPage.module.css";
+import { fetchAllQuizzes, getToken } from "../services/api";
 
-const BASE = (import.meta.env.VITE_API_BASE || "https://quiz-tpjgk.ondigitalocean.app").replace(/\/+$/, "");
-
-// >>> Put YOUR exact question texts here 
 const MY_QUESTIONS = [
   "Hvornår blev Medieskolen oprettet?",
-  "Hvilken uddannelse kan man tage på Medieskolen?"
+  "Hvilken uddannelse kan man tage på Medieskolen?",
 ];
 
 function extractList(raw) {
@@ -16,23 +14,22 @@ function extractList(raw) {
   if (Array.isArray(raw.data)) return raw.data;
   return [];
 }
-
-function normalize(list) {
+function normalizeQuestions(list) {
   if (!Array.isArray(list) || !list.length) return null;
   const questions = list
     .map((q) => {
-      const opts = (q.options || []).map((o) => (typeof o === "string" ? o : o.text));
+      const opts = (q.options || []).map((o) => (typeof o === "string" ? o : o?.text));
       const correctFromText = q.correctAnswer || null;
       const correctFromId =
         (q.options || []).find((o) => o && o._id && q.correctOptionId && o._id === q.correctOptionId)?.text || null;
       return {
         question: q.question,
-        options: opts,
+        options: opts.filter(Boolean),
         correctAnswer: correctFromText || correctFromId || null,
       };
     })
-    .filter((x) => x && x.question && Array.isArray(x.options) && x.options.length);
-  return questions.length ? { id: "mine", questions } : null;
+    .filter((x) => x && x.question && x.options?.length);
+  return questions.length ? { id: "live", questions } : null;
 }
 
 export default function QuizPage() {
@@ -42,7 +39,6 @@ export default function QuizPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // one-at-a-time flow
   const [currentIdx, setCurrentIdx] = useState(0);
   const [selected, setSelected] = useState(null);
   const [submitted, setSubmitted] = useState(false);
@@ -52,69 +48,57 @@ export default function QuizPage() {
 
   useEffect(() => {
     let ignore = false;
-    setLoading(true);
-    setError("");
-    setQuiz(null);
-    setCurrentIdx(0);
-    setSelected(null);
-    setSubmitted(false);
-    setIsCorrect(false);
-    setFinished(false);
-    setPhase("in");
 
-    fetch(`${BASE}/quiz`)
-      .then(async (r) => {
-        const txt = await r.text();
-        if (!r.ok) throw new Error(`HTTP ${r.status}${txt ? ` :: ${txt.slice(0,160)}` : ""}`);
-        try { return JSON.parse(txt); } catch { return null; }
-      })
-      .then((raw) => {
+    (async () => {
+      setLoading(true);
+      setError("");
+
+      // Require token from StartPage
+      if (!getToken()) {
+        setLoading(false);
+        setError("Ingen token. Gå til start og indtast navn.");
+        return;
+      }
+
+      try {
+        const raw = await fetchAllQuizzes();
         if (ignore) return;
-
         const all = extractList(raw);
-        if (!all.length) {
-          setError("API er tom (ingen quizzes seedet).");
-          return;
-        }
+        if (!all.length) { setError("API er tom (ingen quizzes)."); return; }
 
-        // Filter to YOUR questions by exact text (case-insensitive, trims whitespace)
         const targets = MY_QUESTIONS.map((s) => s.trim().toLowerCase());
         const mine = all.filter((q) => targets.includes(String(q.question || "").trim().toLowerCase()));
-
-        const norm = normalize(mine);
-        if (!norm) {
-          setError("Dine spørgsmål blev ikke fundet i API'et.");
-          return;
-        }
-        setQuiz(norm);
-      })
-      .catch((err) => !ignore && setError(err?.message || "Kunne ikke hente data"))
-      .finally(() => !ignore && setLoading(false));
+        const list = mine.length ? mine : all;
+        const norm = normalizeQuestions(list);
+        if (!norm) setError("Ingen quiz fundet.");
+        else setQuiz(norm);
+      } catch (e) {
+        const msg = String(e?.message || "");
+        if (/Unauthorized|401|403/i.test(msg)) setError("Adgang nægtet. Gå til start og log ind igen.");
+        else setError(msg || "Kunne ikke hente data.");
+      } finally {
+        if (!ignore) setLoading(false);
+      }
+    })();
 
     return () => { ignore = true; };
   }, []);
 
-  if (loading) {
-    return (
-      <main className={styles.container}>
-        <p className={styles.muted}>Indlæser…</p>
-      </main>
-    );
-  }
+  if (loading) return <main className={styles.container}><p className={styles.muted}>Indlæser…</p></main>;
   if (error || !quiz) {
     return (
       <main className={styles.container}>
-        <p className={styles.error}>{error || "Kunne ikke hente data"}</p>
+        <div className={styles.card}>
+          <p className={styles.error}>{error || "Kunne ikke hente data."}</p>
+          <button className={styles.primary} onClick={() => navigate("/")}>Til start</button>
+        </div>
       </main>
     );
   }
 
   const q = quiz.questions[currentIdx];
 
-  function handleOption(opt) {
-    setSelected(opt);
-  }
-
+  function handleOption(opt) { if (!submitted) setSelected(opt); }
   function handleSubmit() {
     if (selected == null) return;
     const ok = q.correctAnswer ? selected === q.correctAnswer : false;
@@ -122,14 +106,12 @@ export default function QuizPage() {
     setSubmitted(true);
 
     if (ok) {
-      const viewMs = 1200;
-      const fadeMs = 400;
+      const viewMs = 1200, fadeMs = 400;
       setTimeout(() => setPhase("out"), viewMs);
       setTimeout(() => {
         const last = currentIdx === quiz.questions.length - 1;
-        if (last) {
-          setFinished(true);
-        } else {
+        if (last) setFinished(true);
+        else {
           setCurrentIdx((i) => i + 1);
           setSelected(null);
           setSubmitted(false);
@@ -169,23 +151,14 @@ export default function QuizPage() {
             </ul>
 
             <div className={styles.actions}>
-              <button
-                type="button"
-                onClick={handleSubmit}
-                className={styles.primary}
-                disabled={selected == null}
-              >
+              <button type="button" onClick={handleSubmit} className={styles.primary} disabled={selected == null}>
                 Tjek svar
               </button>
             </div>
 
             {submitted && (
               <div className={styles.feedback}>
-                {isCorrect ? (
-                  <p className={styles.correct}>✔ Korrekt!</p>
-                ) : (
-                  <p className={styles.incorrect}>✖ Forkert, prøv igen.</p>
-                )}
+                {isCorrect ? <p className={styles.correct}>✔ Korrekt!</p> : <p className={styles.incorrect}>✖ Forkert, prøv igen.</p>}
               </div>
             )}
           </div>
@@ -194,11 +167,7 @@ export default function QuizPage() {
         <section className={`${styles.block} ${styles.fadeIn}`}>
           <div className={styles.card}>
             <p className={styles.correct}>✔ Alle spørgsmål besvaret korrekt!</p>
-            <button
-              type="button"
-              onClick={() => navigate(`/next/mine`)}
-              className={styles.primary}
-            >
+            <button type="button" onClick={() => navigate(`/next/live`)} className={styles.primary}>
               Næste QR-kode
             </button>
           </div>
