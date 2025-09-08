@@ -3,13 +3,11 @@ import { useNavigate } from "react-router-dom";
 import styles from "../styles/quizPage.module.css";
 import { fetchAllQuizzes, getToken, fetchProgress } from "../services/api";
 
-// Vis kun dine to spørgsmål hvis de findes i API'et
 const MY_QUESTIONS = [
   "Hvornår blev Medieskolen oprettet?",
   "Hvilken uddannelse kan man tage på Medieskolen?",
 ];
 
-// Helpers
 function extractList(raw) {
   if (!raw) return [];
   if (Array.isArray(raw)) return raw;
@@ -59,7 +57,6 @@ export default function QuizPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // one-at-a-time flow
   const [currentIdx, setCurrentIdx] = useState(0);
   const [selected, setSelected] = useState(null);
   const [submitted, setSubmitted] = useState(false);
@@ -67,7 +64,7 @@ export default function QuizPage() {
   const [finished, setFinished] = useState(false);
   const [phase, setPhase] = useState("in");
 
-  // progress state
+
   const [progress, setProgress] = useState(null);
 
   useEffect(() => {
@@ -84,25 +81,21 @@ export default function QuizPage() {
       setFinished(false);
       setPhase("in");
 
-      // kræver token (oprettet på StartPage)
       if (!getToken()) {
         setLoading(false);
         setError("Ingen token. Gå til start og indtast navn.");
         return;
       }
 
-      // fetch progress (best effort)
       const uid = localStorage.getItem("userId");
       if (uid) {
         try {
           const p = await fetchProgress(uid);
           if (!ignore) setProgress(parseProgress(p));
         } catch {
-          // Ignorer fejl i progress; vis bare quizzen
         }
       }
 
-      // fetch quizzes
       try {
         const raw = await fetchAllQuizzes();
         if (ignore) return;
@@ -112,7 +105,6 @@ export default function QuizPage() {
           return;
         }
 
-        // filtrér til dine to spørgsmål, fallback til alle hvis de ikke findes
         const targets = MY_QUESTIONS.map((s) => s.trim().toLowerCase());
         const mine = all.filter((q) =>
           targets.includes(String(q.question || "").trim().toLowerCase())
@@ -174,7 +166,6 @@ export default function QuizPage() {
     setSubmitted(true);
 
     if (ok) {
-      // vis "Korrekt!" lidt længere
       const viewMs = 1200;
       const fadeMs = 400;
 
@@ -191,14 +182,12 @@ export default function QuizPage() {
           setPhase("in");
         }
 
-        // opdater progress best-effort (hvis backend tracker løbende)
         const uid = localStorage.getItem("userId");
         if (uid) {
           try {
             const p = await fetchProgress(uid);
             setProgress(parseProgress(p));
           } catch {
-            // ignorer fejl
           }
         }
       }, viewMs + fadeMs);
