@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import styles from "../styles/startPage.module.css";
-import { registerUser } from "../services/api";
+import { registerUser, loginByName, getToken } from "../services/api";
 
 export default function StartPage() {
   const [name, setName] = useState("");
@@ -18,10 +18,19 @@ export default function StartPage() {
     try {
       setBusy(true);
       localStorage.setItem("playerName", n);
-      await registerUser(n); 
-      navigate("/quiz/99");  
+
+      await registerUser(n);
+
+      if (!getToken()) {
+        try { await loginByName(n); } catch {}
+      }
+      if (!getToken()) {
+        throw new Error("Serveren returnerede ingen token. Prøv igen med et andet navn, eller prøv igen om lidt.");
+      }
+
+      navigate("/quiz/99");
     } catch (ex) {
-      setErr(ex.message || "Kunne ikke oprette bruger");
+      setErr(ex?.message || "Kunne ikke oprette bruger");
     } finally {
       setBusy(false);
     }

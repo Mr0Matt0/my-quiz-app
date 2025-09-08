@@ -198,7 +198,7 @@ export default function QuizPage() {
     <main className={styles.container}>
       <h1 className={styles.title}>QR Quiz!</h1>
 
-      {progress && (
+      {/* {progress && (
         <section className={`${styles.block} ${styles.fadeIn}`} style={{ marginBottom: 12 }}>
           <div className={styles.card}>
             <h3 className={styles.question} style={{ marginBottom: 6 }}>Din progression</h3>
@@ -216,7 +216,7 @@ export default function QuizPage() {
             )}
           </div>
         </section>
-      )}
+      )} */}
 
       {!finished ? (
         <section
